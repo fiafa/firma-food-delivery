@@ -22,6 +22,14 @@
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
         body { font-family: 'Inter', sans-serif; }
+        body.telegram { background: var(--tg-theme-bg-color, #f9fafb); color: var(--tg-theme-text-color, #1f2937); }
+        body.telegram header { background: var(--tg-theme-secondary-bg-color, #ffffff); }
+        body.telegram .bg-white { background-color: var(--tg-theme-secondary-bg-color, #ffffff); }
+        body.telegram .bg-gray-50, body.telegram .bg-green-50 { background-color: var(--tg-theme-bg-color, #f9fafb); }
+        body.telegram .text-gray-900, body.telegram .text-gray-800 { color: var(--tg-theme-text-color, #1f2937); }
+        body.telegram .text-gray-600, body.telegram .text-gray-500, body.telegram .text-gray-400 { color: var(--tg-theme-hint-color, #6b7280); }
+        body.telegram .border-gray-100, body.telegram .border-gray-200, body.telegram .border-gray-300 { border-color: var(--tg-theme-hint-color, #d1d5db); }
+        body.telegram input, body.telegram select { background: var(--tg-theme-bg-color, #ffffff); color: var(--tg-theme-text-color, #1f2937); }
     </style>
 </head>
 <body class="bg-gray-50 text-gray-800 pb-24">
@@ -204,13 +212,59 @@
         if (tg) {
             tg.ready();
             tg.expand();
-            if (tg.initDataUnsafe?.user?.first_name) {
-                document.getElementById('customer-name').value = tg.initDataUnsafe.user.first_name;
-            }
-            if (tg.initDataUnsafe?.user?.username) {
+            tg.disableVerticalSwipes?.();
+            document.body.classList.add('telegram');
+            tg.setHeaderColor('secondary_bg_color');
+            tg.setBackgroundColor('bg_color');
+
+            const user = tg.initDataUnsafe?.user;
+            if (user) {
+                document.getElementById('customer-name').value = [user.first_name, user.last_name].filter(Boolean).join(' ');
                 document.getElementById('comm-method').value = 'Telegram';
-                document.getElementById('customer-contact').value = '@' + tg.initDataUnsafe.user.username;
+                document.getElementById('customer-contact').value = user.username ? '@' + user.username : '';
             }
+
+            tg.BackButton?.onClick(() => {
+                document.getElementById('cart-modal').classList.add('hidden');
+                syncTelegramUI();
+            });
+
+            tg.MainButton?.onClick(() => {
+                if (document.getElementById('cart-modal').classList.contains('hidden')) {
+                    toggleCart();
+                } else {
+                    checkout();
+                }
+            });
+        }
+
+        function syncTelegramUI() {
+            if (!tg) return;
+            const modalOpen = !document.getElementById('cart-modal').classList.contains('hidden');
+            const totalCount = cart.reduce((sum, i) => sum + i.qty, 0);
+
+            if (totalCount === 0) {
+                tg.MainButton?.hide();
+            } else {
+                tg.MainButton?.setText(modalOpen ? 'Place Order' : `Cart (${totalCount})`);
+                tg.MainButton?.show();
+            }
+
+            if (modalOpen) {
+                tg.BackButton?.show();
+            } else {
+                tg.BackButton?.hide();
+            }
+
+            if (totalCount > 0) tg.enableClosingConfirmation?.();
+            else tg.disableClosingConfirmation?.();
+        }
+
+        function notify(message, kind) {
+            const inTelegram = tg && tg.platform !== 'unknown';
+            if (inTelegram) tg.showAlert(message);
+            else alert(message);
+            if (kind && tg?.HapticFeedback) tg.HapticFeedback.notificationOccurred(kind);
         }
 
         // Save state to localStorage
@@ -316,10 +370,12 @@
                 }).join('');
             }
             totalEl.innerText = `$${totalPrice.toFixed(2)}`;
+            syncTelegramUI();
         }
 
         function toggleCart() {
             document.getElementById('cart-modal').classList.toggle('hidden');
+            syncTelegramUI();
         }
 
         function togglePaymentUI() {
@@ -335,7 +391,7 @@
         // Checkout
         function checkout() {
             if (cart.length === 0) {
-                alert('Your cart is empty!');
+                notify('Your cart is empty!', 'warning');
                 return;
             }
 
@@ -346,7 +402,7 @@
             const paymentMethod = document.querySelector('input[name="payment"]:checked').value;
 
             if (!name || !contact || !location) {
-                alert('Please fill in your name, contact, and delivery location.');
+                notify('Please fill in your name, contact, and delivery location.', 'error');
                 return;
             }
 
@@ -378,7 +434,7 @@
             toggleCart();
             checkActiveTracker();
 
-            alert(`Order #${orderId} placed successfully!`);
+            notify(`Order #${orderId} placed successfully!`, 'success');
         }
 
         // Active Order Tracker UI
