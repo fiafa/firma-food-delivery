@@ -139,6 +139,10 @@
 
                     <input type="text" id="customer-location" placeholder="Delivery Address or Meetup Spot" class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-primary">
 
+                    <button type="button" id="share-phone-btn" onclick="sharePhone()" class="hidden w-full text-xs font-semibold text-primary border border-primary rounded-lg py-2 hover:bg-green-50">
+                        📱 Share my phone number with the bot
+                    </button>
+
                     <h4 class="font-bold text-xs text-gray-700 uppercase tracking-wider pt-2">Payment Method</h4>
                     <div class="grid grid-cols-2 gap-2">
                         <label class="border border-gray-200 rounded-xl p-3 flex flex-col items-center justify-center cursor-pointer hover:border-primary transition has-[:checked]:border-primary has-[:checked]:bg-green-50">
@@ -209,6 +213,7 @@
         let activeOrderId = localStorage.getItem('firma_active_order') || null;
 
         const tg = window.Telegram?.WebApp;
+        let tgUser = null;
         if (tg) {
             tg.ready();
             tg.expand();
@@ -219,9 +224,14 @@
 
             const user = tg.initDataUnsafe?.user;
             if (user) {
+                tgUser = { id: user.id, username: user.username || '' };
                 document.getElementById('customer-name').value = [user.first_name, user.last_name].filter(Boolean).join(' ');
                 document.getElementById('comm-method').value = 'Telegram';
                 document.getElementById('customer-contact').value = user.username ? '@' + user.username : '';
+            }
+
+            if (tg.requestContact) {
+                document.getElementById('share-phone-btn').classList.remove('hidden');
             }
 
             tg.BackButton?.onClick(() => {
@@ -265,6 +275,17 @@
             if (inTelegram) tg.showAlert(message);
             else alert(message);
             if (kind && tg?.HapticFeedback) tg.HapticFeedback.notificationOccurred(kind);
+        }
+
+        function sharePhone() {
+            if (!tg?.requestContact) {
+                notify('Phone sharing is only available inside Telegram.', 'warning');
+                return;
+            }
+            tg.requestContact(shared => {
+                if (shared) notify('Phone number shared with the bot.', 'success');
+                else notify('Phone number was not shared.', 'warning');
+            });
         }
 
         // Save state to localStorage
@@ -418,6 +439,7 @@
                 paymentMethod,
                 items: [...cart],
                 total: totalPrice,
+                telegram: tgUser,
                 status: 'Received', // Received, On the way, Arrived, Delivered
                 timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
             };
