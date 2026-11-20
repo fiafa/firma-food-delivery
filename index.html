@@ -1,0 +1,653 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FIRMA - Food Delivery</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#0a9900'
+                    }
+                }
+            }
+        }
+    </script>
+    <!-- Telegram Web App SDK -->
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+        body { font-family: 'Inter', sans-serif; }
+    </style>
+</head>
+<body class="bg-gray-50 text-gray-800 pb-24">
+
+    <!-- Header -->
+    <header class="sticky top-0 z-30 bg-white shadow-sm border-b border-gray-100 px-4 py-3 flex justify-between items-center">
+        <div class="flex items-center space-x-2 cursor-pointer" onclick="switchView('store')">
+            <img src="images/firma-logo.png" alt="FIRMA Logo" class="w-6 h-6 object-contain">
+            <h1 class="font-bold text-lg text-gray-900">FIRMA</h1>
+        </div>
+        <div class="flex items-center space-x-2">
+            <button onclick="switchView('admin')" class="text-xs bg-gray-100 hover:bg-gray-200 text-gray-700 px-3 py-2 rounded-lg font-medium transition">
+                ⚙️ Admin
+            </button>
+            <button id="cart-btn" onclick="toggleCart()" class="relative bg-green-50 text-green-600 px-3 py-2 rounded-full font-medium text-sm flex items-center space-x-1 hover:bg-green-100 transition">
+                <span>🛒</span>
+                <span id="cart-badge" class="hidden bg-primary text-white text-xs w-5 h-5 rounded-full flex items-center justify-center font-bold">0</span>
+            </button>
+        </div>
+    </header>
+
+    <!-- Main Container -->
+    <main class="max-w-md mx-auto p-4">
+
+        <!-- STORE VIEW -->
+        <div id="view-store">
+            <!-- Banner -->
+            <div class="bg-gradient-to-r from-primary to-green-700 rounded-2xl p-4 text-white mb-6 shadow-md">
+                <h2 class="text-xl font-bold mb-1">Welcome to FIRMA!</h2>
+                <p class="text-green-100 text-sm">Order fresh food instantly. No signup required!</p>
+            </div>
+
+            <!-- Active Order Status Tracker (if any) -->
+            <div id="active-order-tracker" class="hidden bg-white border border-green-200 rounded-2xl p-4 mb-6 shadow-sm">
+                <div class="flex justify-between items-center mb-2">
+                    <h3 class="font-bold text-sm text-gray-900">Active Order #<span id="tracker-id"></span></h3>
+                    <span id="tracker-status-badge" class="text-xs bg-green-100 text-green-700 font-bold px-2.5 py-1 rounded-full">Received</span>
+                </div>
+                <!-- Progress bar -->
+                <div class="relative flex items-center justify-between my-4 px-2">
+                    <div class="absolute left-0 right-0 top-1/2 -translate-y-1/2 h-1 bg-gray-200 z-0"></div>
+                    <div id="progress-line" class="absolute left-0 top-1/2 -translate-y-1/2 h-1 bg-primary z-0 transition-all duration-300" style="width: 0%"></div>
+                    
+                    <div class="step-dot z-10 flex flex-col items-center">
+                        <div class="w-7 h-7 rounded-full bg-primary text-white flex items-center justify-center text-xs font-bold ring-4 ring-green-50">1</div>
+                        <span class="text-[10px] mt-1 font-medium text-gray-600">Received</span>
+                    </div>
+                    <div class="step-dot z-10 flex flex-col items-center">
+                        <div class="w-7 h-7 rounded-full bg-gray-200 text-gray-600 flex items-center justify-center text-xs font-bold ring-4 ring-white">2</div>
+                        <span class="text-[10px] mt-1 font-medium text-gray-600">On the way</span>
+                    </div>
+                    <div class="step-dot z-10 flex flex-col items-center">
+                        <div class="w-7 h-7 rounded-full bg-gray-200 text-gray-600 flex items-center justify-center text-xs font-bold ring-4 ring-white">3</div>
+                        <span class="text-[10px] mt-1 font-medium text-gray-600">Arrived</span>
+                    </div>
+                    <div class="step-dot z-10 flex flex-col items-center">
+                        <div class="w-7 h-7 rounded-full bg-gray-200 text-gray-600 flex items-center justify-center text-xs font-bold ring-4 ring-white">4</div>
+                        <span class="text-[10px] mt-1 font-medium text-gray-600">Delivered</span>
+                    </div>
+                </div>
+                <button onclick="clearActiveOrder()" class="w-full text-center text-xs text-gray-400 hover:text-gray-600 mt-2">Dismiss Tracker</button>
+            </div>
+
+            <!-- Category Filter -->
+            <div class="flex space-x-2 overflow-x-auto pb-2 mb-4 scrollbar-none">
+                <button onclick="filterMenu('all')" class="category-btn active px-4 py-1.5 rounded-full text-sm font-medium bg-primary text-white whitespace-nowrap shadow-sm">All</button>
+                <button onclick="filterMenu('burgers')" class="category-btn px-4 py-1.5 rounded-full text-sm font-medium bg-white text-gray-600 border border-gray-200 whitespace-nowrap">Burgers</button>
+                <button onclick="filterMenu('pizza')" class="category-btn px-4 py-1.5 rounded-full text-sm font-medium bg-white text-gray-600 border border-gray-200 whitespace-nowrap">Pizza</button>
+                <button onclick="filterMenu('drinks')" class="category-btn px-4 py-1.5 rounded-full text-sm font-medium bg-white text-gray-600 border border-gray-200 whitespace-nowrap">Drinks</button>
+            </div>
+
+            <!-- Menu Grid -->
+            <div id="menu-grid" class="grid grid-cols-2 gap-3">
+                <!-- Populated via JS -->
+            </div>
+        </div>
+
+        <!-- ADMIN VIEW -->
+        <div id="view-admin" class="hidden space-y-6">
+            <div class="bg-white p-4 rounded-2xl shadow-sm border border-gray-100">
+                <h3 class="font-bold text-base text-gray-900 mb-3">🛠 Admin Control Panel</h3>
+                <p class="text-xs text-gray-600 mb-2">Managing FIRMA menu and orders</p>
+                <div class="flex space-x-2 border-b border-gray-100 pb-3 mb-4">
+                    <button onclick="switchAdminTab('orders')" id="admin-tab-orders" class="px-3 py-1.5 rounded-lg text-xs font-bold bg-primary text-white">Orders</button>
+                    <button onclick="switchAdminTab('menu')" id="admin-tab-menu" class="px-3 py-1.5 rounded-lg text-xs font-bold bg-gray-100 text-gray-600">Manage Menu</button>
+                </div>
+
+                <!-- Admin Orders Tab -->
+                <div id="admin-section-orders" class="space-y-3">
+                    <h4 class="font-semibold text-sm text-gray-700">Incoming Orders</h4>
+                    <div id="admin-orders-list" class="space-y-3">
+                        <!-- Populated via JS -->
+                    </div>
+                </div>
+
+                <!-- Admin Menu Tab -->
+                <div id="admin-section-menu" class="hidden space-y-4">
+                    <div class="bg-gray-50 p-3 rounded-xl border border-gray-200">
+                        <h4 class="font-bold text-xs text-gray-800 mb-2">Add New Item</h4>
+                        <div class="space-y-2">
+                            <input type="text" id="new-item-name" placeholder="Item Name" class="w-full px-2.5 py-1.5 border border-gray-200 rounded-lg text-xs">
+                            <div class="grid grid-cols-2 gap-2">
+                                <input type="number" step="0.01" id="new-item-price" placeholder="Price ($)" class="w-full px-2.5 py-1.5 border border-gray-200 rounded-lg text-xs">
+                                <select id="new-item-cat" class="w-full px-2.5 py-1.5 border border-gray-200 rounded-lg text-xs bg-white">
+                                    <option value="burgers">Burgers</option>
+                                    <option value="pizza">Pizza</option>
+                                    <option value="drinks">Drinks</option>
+                                    <option value="snacks">Snacks</option>
+                                </select>
+                            </div>
+                            <input type="text" id="new-item-img" placeholder="Emoji icon (e.g. 🍔)" class="w-full px-2.5 py-1.5 border border-gray-200 rounded-lg text-xs">
+                            <input type="file" id="new-item-img-file" accept="image/*" class="w-full text-xs text-gray-500 file:mr-2 file:py-1 file:px-2 file:rounded file:border-0 file:text-xs file:font-semibold file:bg-green-50 file:text-green-700">
+                            <button onclick="addNewMenuItem()" class="w-full bg-primary text-white font-bold py-2 rounded-lg text-xs">Add Item</button>
+                        </div>
+                    </div>
+
+                    <h4 class="font-semibold text-sm text-gray-700">Item Icons/Emojis</h4>
+                    <div class="bg-gray-50 p-3 rounded-xl border border-gray-200">
+                        <p class="text-xs text-gray-600 mb-2">Upload icons to: <code>images/emojis/</code></p>
+                        <input type="file" id="bulk-emoji-upload" accept="image/*" multiple class="w-full text-xs text-gray-500 file:mr-2 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-primary file:text-white">
+                        <p class="text-[10px] text-gray-500 mt-1">Supported: emojis, icons, images (PNG, JPG, SVG)</p>
+                    </div>
+
+                    <h4 class="font-semibold text-sm text-gray-700">QR Code</h4>
+                    <div class="bg-gray-50 p-3 rounded-xl border border-gray-200">
+                        <p class="text-xs text-gray-600 mb-2">Current QR: <code>images/qr/default-qr.png</code></p>
+                        <input type="file" id="qr-upload" accept="image/*" class="w-full text-xs text-gray-500 file:mr-2 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-primary file:text-white">
+                        <p class="text-[10px] text-gray-500 mt-1">Upload new QR code to replace the payment QR</p>
+                    </div>
+
+                    <h4 class="font-semibold text-sm text-gray-700">Existing Items</h4>
+                    <div id="admin-menu-list" class="space-y-2">
+                        <!-- Populated via JS -->
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Cart / Checkout Modal -->
+    <div id="cart-modal" class="fixed inset-0 bg-black/50 z-50 hidden flex justify-end transition-opacity">
+        <div class="bg-white w-full max-w-sm h-full flex flex-col shadow-xl">
+            <!-- Cart Header -->
+            <div class="p-4 border-b border-gray-100 flex justify-between items-center">
+                <h3 class="font-bold text-lg text-gray-900">Your FIRMA Cart</h3>
+                <button onclick="toggleCart()" class="text-gray-400 hover:text-gray-600 text-xl font-bold">&times;</button>
+            </div>
+
+            <!-- Cart Body -->
+            <div class="flex-1 overflow-y-auto p-4 space-y-4">
+                <!-- Items list -->
+                <div id="cart-items" class="space-y-2">
+                    <!-- Cart items rendered here -->
+                </div>
+
+                <hr class="border-gray-100">
+
+                <!-- Checkout Form -->
+                <div class="space-y-3">
+                    <h4 class="font-bold text-xs text-gray-700 uppercase tracking-wider">Delivery & Contact</h4>
+                    <input type="text" id="customer-name" placeholder="Name" class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-primary">
+                    
+                    <div class="grid grid-cols-2 gap-2">
+                        <select id="comm-method" class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm bg-white focus:outline-none focus:border-primary">
+                            <option value="Telegram">Telegram Username</option>
+                            <option value="Phone">Phone Number</option>
+                        </select>
+                        <input type="text" id="customer-contact" placeholder="Username / Phone" class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-primary">
+                    </div>
+
+                    <input type="text" id="customer-location" placeholder="Delivery Address or Meetup Spot" class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-primary">
+
+                    <h4 class="font-bold text-xs text-gray-700 uppercase tracking-wider pt-2">Payment Method</h4>
+                    <div class="grid grid-cols-2 gap-2">
+                        <label class="border border-gray-200 rounded-xl p-3 flex flex-col items-center justify-center cursor-pointer hover:border-primary transition has-[:checked]:border-primary has-[:checked]:bg-green-50">
+                            <input type="radio" name="payment" value="cod" checked onchange="togglePaymentUI()" class="accent-primary mb-1">
+                            <span class="text-xs font-bold">Cash on Arrival</span>
+                        </label>
+                        <label class="border border-gray-200 rounded-xl p-3 flex flex-col items-center justify-center cursor-pointer hover:border-primary transition has-[:checked]:border-primary has-[:checked]:bg-green-50">
+                            <input type="radio" name="payment" value="qr" onchange="togglePaymentUI()" class="accent-primary mb-1">
+                            <span class="text-xs font-bold">QR Code Payment</span>
+                        </label>
+                    </div>
+
+                    <!-- QR Code Payment Box -->
+                    <div id="qr-payment-box" class="hidden bg-gray-50 p-3 rounded-xl border border-gray-200 text-center space-y-2">
+                        <p class="text-xs text-gray-600 font-medium">Scan QR to pay & attach screenshot/invoice below:</p>
+                        <div class="w-28 h-28 bg-white mx-auto border border-gray-200 rounded-lg flex items-center justify-center shadow-xs">
+                            <img src="images/qr/default-qr.png" alt="QR Code" class="w-full h-full object-contain rounded-lg" onerror="this.parentElement.innerHTML='<span class=\"text-3xl\">📱<br><span class=\"text-xs\">QR Code</span></span>'">
+                        </div>
+                        <input type="file" id="payment-proof" accept="image/*" class="w-full text-xs text-gray-500 file:mr-2 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-green-50 file:text-green-700 hover:file:bg-green-100">
+                    </div>
+                </div>
+            </div>
+
+            <!-- Cart Footer -->
+            <div class="p-4 border-t border-gray-100 bg-white">
+                <div class="flex justify-between items-center mb-3 text-base font-bold">
+                    <span>Total:</span>
+                    <span id="cart-total" class="text-primary">$0.00</span>
+                </div>
+                <button onclick="checkout()" class="w-full bg-primary hover:bg-green-700 text-white font-bold py-3 rounded-xl transition shadow-md text-center block">
+                    Place Order 🚀
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- JavaScript Application Logic -->
+    <script>
+        // Default Menu Data stored in localStorage if not present
+        const defaultMenu = [
+            { id: 1, name: 'Cheeseburger Deluxe', category: 'burgers', price: 8.99, image: '🍔' },
+            { id: 2, name: 'Double Bacon Burger', category: 'burgers', price: 10.99, image: '🥓' },
+            { id: 3, name: 'Pepperoni Pizza', category: 'pizza', price: 12.99, image: '🍕' },
+            { id: 4, name: 'Margherita Pizza', category: 'pizza', price: 10.49, image: '🧀' },
+            { id: 5, name: 'Crispy French Fries', category: 'snacks', price: 3.99, image: '🍟' },
+            { id: 6, name: 'Ice Cold Cola', category: 'drinks', price: 2.49, image: '🥤' }
+        ];
+
+        function getItemImage(item) {
+            if (item.image.startsWith('http')) {
+                return `<img src="${item.image}" class="w-full h-28 object-contain rounded-xl">`;
+            }
+            if (item.image.startsWith('images/')) {
+                return `<img src="${item.image}" class="w-full h-28 object-contain rounded-xl">`;
+            }
+            return `<span class="text-4xl">${item.image}</span>`;
+        }
+
+        let menuItems = JSON.parse(localStorage.getItem('firma_menu')) || defaultMenu;
+        let orders = JSON.parse(localStorage.getItem('firma_orders')) || [];
+        let cart = [];
+        let activeOrderId = localStorage.getItem('firma_active_order') || null;
+
+        const tg = window.Telegram?.WebApp;
+        if (tg) {
+            tg.ready();
+            tg.expand();
+            if (tg.initDataUnsafe?.user?.first_name) {
+                document.getElementById('customer-name').value = tg.initDataUnsafe.user.first_name;
+            }
+            if (tg.initDataUnsafe?.user?.username) {
+                document.getElementById('comm-method').value = 'Telegram';
+                document.getElementById('customer-contact').value = '@' + tg.initDataUnsafe.user.username;
+            }
+        }
+
+        // Save state to localStorage
+        function saveMenu() {
+            localStorage.setItem('firma_menu', JSON.stringify(menuItems));
+        }
+        function saveOrders() {
+            localStorage.setItem('firma_orders', JSON.stringify(orders));
+        }
+
+        // Switch Views (Store vs Admin)
+        function switchView(view) {
+            document.getElementById('view-store').classList.add('hidden');
+            document.getElementById('view-admin').classList.add('hidden');
+            if (view === 'store') {
+                document.getElementById('view-store').classList.remove('hidden');
+                renderMenu();
+                checkActiveTracker();
+            } else if (view === 'admin') {
+                document.getElementById('view-admin').classList.remove('hidden');
+                renderAdminOrders();
+                renderAdminMenu();
+            }
+        }
+
+        function switchAdminTab(tab) {
+            document.getElementById('admin-section-orders').classList.add('hidden');
+            document.getElementById('admin-section-menu').classList.add('hidden');
+            document.getElementById('admin-tab-orders').className = 'px-3 py-1.5 rounded-lg text-xs font-bold bg-gray-100 text-gray-600';
+            document.getElementById('admin-tab-menu').className = 'px-3 py-1.5 rounded-lg text-xs font-bold bg-gray-100 text-gray-600';
+
+            if (tab === 'orders') {
+                document.getElementById('admin-section-orders').classList.remove('hidden');
+                document.getElementById('admin-tab-orders').className = 'px-3 py-1.5 rounded-lg text-xs font-bold bg-primary text-white';
+                renderAdminOrders();
+            } else {
+                document.getElementById('admin-section-menu').classList.remove('hidden');
+                document.getElementById('admin-tab-menu').className = 'px-3 py-1.5 rounded-lg text-xs font-bold bg-primary text-white';
+                renderAdminMenu();
+            }
+        }
+
+        // Render Store Menu
+        function renderMenu(category = 'all') {
+            const grid = document.getElementById('menu-grid');
+            const filtered = category === 'all' ? menuItems : menuItems.filter(item => item.category === category);
+            
+            grid.innerHTML = filtered.map(item => `
+                <div class="bg-white p-3 rounded-2xl shadow-xs border border-gray-100 flex flex-col justify-between">
+                    <div>
+                        <div class="w-full h-28 bg-green-50 rounded-xl flex items-center justify-center mb-2">
+                            ${getItemImage(item)}
+                        </div>
+                        <h4 class="font-semibold text-sm text-gray-800 line-clamp-1">${item.name}</h4>
+                    </div>
+                    <div class="mt-3 flex items-center justify-between">
+                        <span class="font-bold text-primary text-sm">$${Number(item.price).toFixed(2)}</span>
+                        <button onclick="addToCart(${item.id})" class="bg-green-50 hover:bg-primary hover:text-white text-primary text-xs font-bold px-3 py-1.5 rounded-lg transition">
+                            + Add
+                        </button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function filterMenu(category) {
+            document.querySelectorAll('.category-btn').forEach(btn => {
+                btn.classList.remove('bg-primary', 'text-white', 'shadow-sm');
+                btn.classList.add('bg-white', 'text-gray-600', 'border', 'border-gray-200');
+            });
+            event.target.classList.remove('bg-white', 'text-gray-600', 'border', 'border-gray-200');
+            event.target.classList.add('bg-primary', 'text-white', 'shadow-sm');
+            renderMenu(category);
+        }
+
+        // Cart Actions
+        function addToCart(id) {
+            const item = menuItems.find(i => i.id === id);
+            const existing = cart.find(i => i.id === id);
+            if (existing) {
+                existing.qty++;
+            } else {
+                cart.push({ ...item, qty: 1 });
+            }
+            updateCartUI();
+            if (tg?.HapticFeedback) tg.HapticFeedback.impactOccurred('light');
+        }
+
+        function changeQty(id, delta) {
+            const item = cart.find(i => i.id === id);
+            if (item) {
+                item.qty += delta;
+                if (item.qty <= 0) cart = cart.filter(i => i.id !== id);
+            }
+            updateCartUI();
+        }
+
+        function updateCartUI() {
+            const badge = document.getElementById('cart-badge');
+            const itemsContainer = document.getElementById('cart-items');
+            const totalEl = document.getElementById('cart-total');
+
+            const totalCount = cart.reduce((sum, i) => sum + i.qty, 0);
+            const totalPrice = cart.reduce((sum, i) => sum + (i.price * i.qty), 0);
+
+            if (totalCount > 0) {
+                badge.innerText = totalCount;
+                badge.classList.remove('hidden');
+                badge.classList.add('flex');
+            } else {
+                badge.classList.add('hidden');
+                badge.classList.remove('flex');
+            }
+
+            if (cart.length === 0) {
+                itemsContainer.innerHTML = `<div class="text-center text-gray-400 py-8 text-sm">Your cart is empty 🛒</div>`;
+            } else {
+                itemsContainer.innerHTML = cart.map(item => {
+                    const imgHtml = item.image.startsWith('http') || item.image.startsWith('images/')
+                        ? `<img src="${item.image}" class="w-10 h-10 object-contain rounded">`
+                        : `<span class="text-2xl">${item.image}</span>`;
+                    return `
+                    <div class="flex items-center justify-between bg-gray-50 p-2.5 rounded-xl">
+                        <div class="flex items-center space-x-2">
+                            ${imgHtml}
+                            <div>
+                                <h5 class="font-medium text-sm text-gray-800">${item.name}</h5>
+                                <span class="text-xs text-primary font-bold">$${(item.price * item.qty).toFixed(2)}</span>
+                            </div>
+                        </div>
+                        <div class="flex items-center space-x-2 bg-white px-2 py-1 rounded-lg border border-gray-200">
+                            <button onclick="changeQty(${item.id}, -1)" class="text-gray-500 font-bold px-1">-</button>
+                            <span class="text-xs font-bold w-4 text-center">${item.qty}</span>
+                            <button onclick="changeQty(${item.id}, 1)" class="text-gray-500 font-bold px-1">+</button>
+                        </div>
+                    </div>
+                `;
+                }).join('');
+            }
+            totalEl.innerText = `$${totalPrice.toFixed(2)}`;
+        }
+
+        function toggleCart() {
+            document.getElementById('cart-modal').classList.toggle('hidden');
+        }
+
+        function togglePaymentUI() {
+            const paymentType = document.querySelector('input[name="payment"]:checked').value;
+            const qrBox = document.getElementById('qr-payment-box');
+            if (paymentType === 'qr') {
+                qrBox.classList.remove('hidden');
+            } else {
+                qrBox.classList.add('hidden');
+            }
+        }
+
+        // Checkout
+        function checkout() {
+            if (cart.length === 0) {
+                alert('Your cart is empty!');
+                return;
+            }
+
+            const name = document.getElementById('customer-name').value.trim();
+            const commMethod = document.getElementById('comm-method').value;
+            const contact = document.getElementById('customer-contact').value.trim();
+            const location = document.getElementById('customer-location').value.trim();
+            const paymentMethod = document.querySelector('input[name="payment"]:checked').value;
+
+            if (!name || !contact || !location) {
+                alert('Please fill in your name, contact, and delivery location.');
+                return;
+            }
+
+            const orderId = Math.floor(1000 + Math.random() * 9000);
+            const totalPrice = cart.reduce((sum, i) => sum + (i.price * i.qty), 0);
+            
+            const newOrder = {
+                id: orderId,
+                name,
+                commMethod,
+                contact,
+                location,
+                paymentMethod,
+                items: [...cart],
+                total: totalPrice,
+                status: 'Received', // Received, On the way, Arrived, Delivered
+                timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+            };
+
+            orders.unshift(newOrder);
+            saveOrders();
+
+            // Set active order tracker
+            activeOrderId = orderId;
+            localStorage.setItem('firma_active_order', orderId);
+
+            cart = [];
+            updateCartUI();
+            toggleCart();
+            checkActiveTracker();
+
+            alert(`Order #${orderId} placed successfully!`);
+        }
+
+        // Active Order Tracker UI
+        function checkActiveTracker() {
+            const tracker = document.getElementById('active-order-tracker');
+            if (!activeOrderId) {
+                tracker.classList.add('hidden');
+                return;
+            }
+
+            const order = orders.find(o => o.id == activeOrderId);
+            if (!order) {
+                tracker.classList.add('hidden');
+                return;
+            }
+
+            tracker.classList.remove('hidden');
+            document.getElementById('tracker-id').innerText = order.id;
+            document.getElementById('tracker-status-badge').innerText = order.status;
+
+            // Update steps progress bar
+            const steps = ['Received', 'On the way', 'Arrived', 'Delivered'];
+            const currentIndex = steps.indexOf(order.status);
+            const percent = (currentIndex / (steps.length - 1)) * 100;
+            document.getElementById('progress-line').style.width = percent + '%';
+        }
+
+        function clearActiveOrder() {
+            activeOrderId = null;
+            localStorage.removeItem('firma_active_order');
+            document.getElementById('active-order-tracker').classList.add('hidden');
+        }
+
+        // Admin Orders Rendering
+        function renderAdminOrders() {
+            const container = document.getElementById('admin-orders-list');
+            if (orders.length === 0) {
+                container.innerHTML = `<div class="text-center text-gray-400 py-6 text-xs">No orders yet.</div>`;
+                return;
+            }
+
+            container.innerHTML = orders.map(order => `
+                <div class="bg-gray-50 p-3 rounded-xl border border-gray-200 space-y-2 text-xs">
+                    <div class="flex justify-between items-center font-bold">
+                        <span class="text-gray-900">#${order.id} - ${order.name}</span>
+                        <span class="text-primary">$${order.total.toFixed(2)}</span>
+                    </div>
+                    <div class="text-gray-600 space-y-0.5">
+                        <p>📍 <b>Location:</b> ${order.location}</p>
+                        <p>📞 <b>${order.commMethod}:</b> ${order.contact}</p>
+                        <p>💳 <b>Payment:</b> ${order.paymentMethod === 'cod' ? 'Cash on Arrival' : 'QR Code Paid'}</p>
+                    </div>
+                    <div class="border-t border-gray-200 pt-2">
+                        <p class="font-semibold text-gray-700 mb-1">Items:</p>
+                        <ul class="list-disc list-inside text-gray-600">
+                            ${order.items.map(i => `<li>${i.name} x${i.qty}</li>`).join('')}
+                        </ul>
+                    </div>
+                    <div class="flex items-center justify-between pt-2 border-t border-gray-200">
+                        <span class="font-semibold text-gray-700">Status:</span>
+                        <select onchange="updateOrderStatus(${order.id}, this.value)" class="bg-white border border-gray-300 rounded-lg px-2 py-1 text-xs font-bold text-primary">
+                            <option value="Received" ${order.status === 'Received' ? 'selected' : ''}>Received</option>
+                            <option value="On the way" ${order.status === 'On the way' ? 'selected' : ''}>On the way</option>
+                            <option value="Arrived" ${order.status === 'Arrived' ? 'selected' : ''}>Arrived</option>
+                            <option value="Delivered" ${order.status === 'Delivered' ? 'selected' : ''}>Delivered</option>
+                        </select>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function updateOrderStatus(id, newStatus) {
+            const order = orders.find(o => o.id === id);
+            if (order) {
+                order.status = newStatus;
+                saveOrders();
+                if (activeOrderId == id) {
+                    checkActiveTracker();
+                }
+            }
+        }
+
+        // Admin Menu Management
+        function renderAdminMenu() {
+            const container = document.getElementById('admin-menu-list');
+            container.innerHTML = menuItems.map(item => {
+                const imgHtml = item.image.startsWith('http') || item.image.startsWith('images/')
+                    ? `<img src="${item.image}" class="w-6 h-6 object-contain rounded">`
+                    : `<span class="text-xl">${item.image}</span>`;
+                return `
+                <div class="flex items-center justify-between bg-gray-50 p-2.5 rounded-xl border border-gray-200 text-xs">
+                    <div class="flex items-center space-x-2">
+                        ${imgHtml}
+                        <div>
+                            <h5 class="font-bold text-gray-800">${item.name}</h5>
+                            <span class="text-primary font-semibold"> $${Number(item.price).toFixed(2)}</span>
+                        </div>
+                    </div>
+                    <div class="flex items-center space-x-1">
+                        <button onclick="editItemImage(${item.id})" class="bg-white border border-gray-300 px-2 py-1 rounded text-gray-600 font-semibold hover:bg-gray-100">Edit Icon</button>
+                        <button onclick="editItemPrice(${item.id})" class="bg-white border border-gray-300 px-2 py-1 rounded text-gray-600 font-semibold hover:bg-gray-100">Edit Price</button>
+                        <button onclick="deleteMenuItem(${item.id})" class="bg-red-50 text-red-600 px-2 py-1 rounded font-semibold hover:bg-red-100">Delete</button>
+                    </div>
+                </div>
+            `;
+            }).join('');
+        }
+
+        function addNewMenuItem() {
+            const name = document.getElementById('new-item-name').value.trim();
+            const price = parseFloat(document.getElementById('new-item-price').value);
+            const category = document.getElementById('new-item-cat').value;
+            const emojiInput = document.getElementById('new-item-img').value.trim();
+            const image = emojiInput || '🍔';
+
+            if (!name || isNaN(price)) {
+                alert('Please provide valid name and price.');
+                return;
+            }
+
+            const newItem = {
+                id: Date.now(),
+                name,
+                price,
+                category,
+                image
+            };
+
+            menuItems.push(newItem);
+            saveMenu();
+            renderAdminMenu();
+            document.getElementById('new-item-name').value = '';
+            document.getElementById('new-item-price').value = '';
+            document.getElementById('new-item-img').value = '';
+            alert('Item added successfully!');
+        }
+
+        function editItemImage(id) {
+            const item = menuItems.find(i => i.id === id);
+            const newImage = prompt(`Enter emoji or image path for ${item.name}:\n- Emoji: 🍔\n- Image path: images/emojis/burger.png\n- URL: https://...`, item.image);
+            if (newImage !== null && newImage.trim() !== '') {
+                item.image = newImage.trim();
+                saveMenu();
+                renderAdminMenu();
+            }
+        }
+
+        function editItemPrice(id) {
+            const item = menuItems.find(i => i.id === id);
+            const newPrice = prompt(`Enter new price for ${item.name}:`, item.price);
+            if (newPrice !== null && !isNaN(parseFloat(newPrice))) {
+                item.price = parseFloat(newPrice);
+                saveMenu();
+                renderAdminMenu();
+            }
+        }
+
+        function deleteMenuItem(id) {
+            if (confirm('Are you sure you want to delete this item?')) {
+                menuItems = menuItems.filter(i => i.id !== id);
+                saveMenu();
+                renderAdminMenu();
+            }
+        }
+
+        // Initialize store view on load
+        renderMenu();
+        checkActiveTracker();
+
+        // Auto-refresh tracker/orders every 3 seconds for real-time simulation
+        setInterval(() => {
+            orders = JSON.parse(localStorage.getItem('firma_orders')) || orders;
+            checkActiveTracker();
+            if (!document.getElementById('view-admin').classList.contains('hidden')) {
+                renderAdminOrders();
+            }
+        }, 3000);
+    </script>
+</body>
+</html>
