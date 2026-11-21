@@ -159,7 +159,7 @@
                     <div id="qr-payment-box" class="hidden bg-gray-50 p-3 rounded-xl border border-gray-200 text-center space-y-2">
                         <p class="text-xs text-gray-600 font-medium">Scan QR to pay & attach screenshot/invoice below:</p>
                         <div class="w-28 h-28 bg-white mx-auto border border-gray-200 rounded-lg flex items-center justify-center shadow-xs">
-                            <img src="images/qr/default-qr.png" alt="QR Code" class="w-full h-full object-contain rounded-lg" onerror="this.parentElement.innerHTML='<span class=\"text-3xl\">📱<br><span class=\"text-xs\">QR Code</span></span>'">
+                            <img src="images/qr/default-qr.png" alt="QR Code" class="w-full h-full object-contain rounded-lg" onerror="this.parentElement.innerHTML='<span class=&quot;text-3xl&quot;>📱<br><span class=&quot;text-xs&quot;>QR Code</span></span>'">
                         </div>
                         <input type="file" id="payment-proof" accept="image/*" class="w-full text-xs text-gray-500 file:mr-2 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-green-50 file:text-green-700 hover:file:bg-green-100">
                     </div>
@@ -352,8 +352,9 @@
 
         // Cart Actions
         function addToCart(id) {
-            const item = menuItems.find(i => i.id === id);
-            const existing = cart.find(i => i.id === id);
+            const item = menuItems.find(i => String(i.id) === String(id));
+            const existing = cart.find(i => String(i.id) === String(id));
+            if (!item) return;
             if (existing) {
                 existing.qty++;
             } else {
@@ -364,10 +365,10 @@
         }
 
         function changeQty(id, delta) {
-            const item = cart.find(i => i.id === id);
+            const item = cart.find(i => String(i.id) === String(id));
             if (item) {
                 item.qty += delta;
-                if (item.qty <= 0) cart = cart.filter(i => i.id !== id);
+                if (item.qty <= 0) cart = cart.filter(i => String(i.id) !== String(id));
             }
             updateCartUI();
         }
