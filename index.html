@@ -560,13 +560,13 @@
         checkActiveTracker();
         syncRemoteMenu();
 
-        // Auto-refresh tracker/orders every 3 seconds for real-time simulation
+        // Refresh tracker/orders once a minute; 3s polling exhausted the KV list quota.
         setInterval(() => {
             orders = JSON.parse(localStorage.getItem('firma_orders')) || orders;
             checkActiveTracker();
             syncRemoteOrder();
             syncRemoteMenu();
-        }, 3000);
+        }, 60000);
     </script>
 </body>
 </html>
